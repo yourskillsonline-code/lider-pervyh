@@ -391,9 +391,10 @@ html:fullscreen .game-container {
             html:fullscreen .game-container .screen { padding: 58px 18px 24px; }
         }
 
-        .credit { font-size: 14px; color: #718096; margin-top: 16px; line-height: 1.5; }
-        .credit a { color: #c5121a; font-weight: 700; text-decoration: none; }
+        .credit { font-size: 11px; color: #8a94a6; margin: 10px 0 0; line-height: 1.4; text-align: center; letter-spacing: .2px; }
+        .credit a { color: #c5121a; font-weight: 600; text-decoration: none; }
         .credit a:hover, .credit a:focus { text-decoration: underline; }
+        .welcome-bottom { width: 100%; }
 
     </style>
 </head>
@@ -412,11 +413,13 @@ html:fullscreen .game-container {
             <div class="header-progress">Интерактивная познавательная игра</div>
             <h1>ЛИДЕР ПЕРВЫХ</h1>
             <p>Знакомство с символикой, миссией и направлениями Движения Первых. Узнайте больше, проявите смекалку и станьте частью большой команды!</p>
-            <p class="credit">Автор: Овчинникова В.С. · <a href="https://vk.ru/uchikopilka" target="_blank" rel="noopener">Сообщество «Учи-копилка»</a></p>
         </div>
-        <div class="nav-buttons">
-            <span style="font-size: 18px; color: #718096; font-weight: 600;">Возраст: 14–16 лет | Время: 30 мин</span>
-            <button class="btn" onclick="nextScreen()">Начать игру</button>
+        <div class="welcome-bottom">
+            <div class="nav-buttons">
+                <span style="font-size: 18px; color: #718096; font-weight: 600;">Возраст: 14–16 лет | Время: 30 мин</span>
+                <button class="btn" onclick="nextScreen()">Начать игру</button>
+            </div>
+            <p class="credit">Автор: Овчинникова В.С. · <a href="https://vk.ru/uchikopilka" target="_blank" rel="noopener">Сообщество «Учи-копилка»</a></p>
         </div>
     </div>
 
@@ -567,32 +570,52 @@ html:fullscreen .game-container {
         showScreen(0);
     }
 
-    function toggleFullscreen() {
-        const root = document.documentElement;
-        const isFullscreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    function showFsHint(message) {
+        let hint = document.getElementById('fs-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = 'fs-hint';
+            hint.style.cssText = 'position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:99999;max-width:min(92vw,560px);padding:12px 18px;border-radius:14px;background:#c5121a;color:#fff;font:600 15px/1.4 Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);text-align:center;';
+            document.body.appendChild(hint);
+        }
+        hint.textContent = message;
+        hint.style.display = 'block';
+        clearTimeout(window.__fsHintTimer);
+        window.__fsHintTimer = setTimeout(function () { hint.style.display = 'none'; }, 6000);
+    }
 
-        if (!isFullscreen) {
-            const request = root.requestFullscreen || root.webkitRequestFullscreen;
-            if (!request) {
-                alert('Полноэкранный режим не поддерживается этим браузером. Попробуйте открыть игру в Chrome или Edge.');
-                return;
+    function toggleFullscreen() {
+        const doc = document;
+        const root = doc.documentElement;
+        const isFullscreen = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement);
+
+        if (isFullscreen) {
+            const exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+            if (exit) {
+                try { exit.call(doc); } catch (error) {}
             }
-            try {
-                const result = request.call(root);
-                if (result && typeof result.catch === 'function') {
-                    result.catch(() => alert('Браузер не разрешил полноэкранный режим. Нажмите кнопку ещё раз или используйте клавишу F11.'));
-                }
-            } catch (error) {
-                alert('Не удалось открыть полноэкранный режим. Попробуйте клавишу F11.');
+            return;
+        }
+
+        const request = root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen;
+        if (!request) {
+            showFsHint('Этот браузер не умеет полноэкранный режим. Нажмите F11 — игра тоже растянется на весь экран.');
+            return;
+        }
+        try {
+            const result = request.call(root);
+            if (result && typeof result.catch === 'function') {
+                result.catch(function () {
+                    showFsHint('Браузер не разрешил полноэкранный режим. Нажмите F11 или откройте игру в Chrome / Edge.');
+                });
             }
-        } else {
-            const exit = document.exitFullscreen || document.webkitExitFullscreen;
-            if (exit) exit.call(document);
+        } catch (error) {
+            showFsHint('Не удалось открыть полный экран. Нажмите F11.');
         }
     }
 
     function updateFullscreenButton() {
-        const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
         const label = document.getElementById('fullscreen-label');
         const icon = document.getElementById('fullscreen-icon');
         const btn = document.getElementById('fullscreen-btn');
